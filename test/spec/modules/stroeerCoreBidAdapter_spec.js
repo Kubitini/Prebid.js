@@ -104,63 +104,6 @@ describe('stroeerCore bid adapter', function () {
     }]
   });
 
-  const buildBidderResponseWithTep = () => ({
-    'tep': '//hb.adscale.de/sspReqId/5f465360-cb11-44ee-b0be-b47a4f583521/39000',
-    'bids': [{
-      'bidId': 'bid1', 'cpm': 4.0, 'width': 300, 'height': 600, 'ad': '<div>tag1</div>'
-    }]
-  });
-
-  const buildBidderResponseWithBidPriceOptimisation = () => ({
-    'bids': [{
-      'bidId': 'bid1',
-      'cpm': 4.0,
-      'width': 300,
-      'height': 600,
-      'ad': '<div>tag1</div>',
-      'bidPriceOptimisation': {
-        'cp': 4,
-        'rop': {
-          '0.0': 4, '2.0': 6, '5.3': 8.2, '7.0': 10
-        },
-        'ropFactor': 1.2
-      }
-    }]
-  });
-
-  const buildBidderResponseWithBidPriceOptimisationButNoBids = () => ({
-    'bids': [{
-      'bidId': 'bid1',
-      'bidPriceOptimisation': {
-        'cp': 4,
-        'rop': {
-          '0.0': 4, '2.0': 6, '5.3': 8.2, '7.0': 10
-        },
-        'ropFactor': 1.2
-      }
-    }]
-  });
-
-  const buildBidderResponseSecondPriceAuction = () => {
-    const response = buildBidderResponse();
-
-    const bid1 = response.bids[0];
-    bid1.cpm2 = 3.8;
-    bid1.floor = 2.0;
-    bid1.exchangeRate = 1.0;
-    bid1.nurl = 'www.something.com';
-    bid1.ssat = 2;
-    bid1.maxprice = 2.38;
-
-    const bid2 = response.bids[1];
-    bid2.floor = 1.0;
-    bid2.exchangeRate = 0.8;
-    bid2.nurl = 'www.something-else.com';
-    bid2.ssat = 2;
-
-    return response;
-  };
-
   const createWindow = (href, params = {}) => {
     let {parent, referrer, top, frameElement, placementElements = []} = params;
     const protocol = href.startsWith('https') ? 'https:' : 'http:';
@@ -255,26 +198,6 @@ describe('stroeerCore bid adapter', function () {
     });
 
     it('should pass a valid bid', () => {
-      assert.isTrue(spec.isBidRequestValid(bidRequest));
-    });
-
-    const invalidSsatSamples = [-1, 0, 3, 4];
-    invalidSsatSamples.forEach((type) => {
-      it(`server side auction type ${type} should be invalid`, () => {
-        bidRequest.params.ssat = type;
-        assert.isFalse(spec.isBidRequestValid(bidRequest));
-      })
-    });
-
-    it('should include bids with valid ssat value', () => {
-      bidRequest.params.ssat = 1;
-      assert.isTrue(spec.isBidRequestValid(bidRequest));
-
-      bidRequest.params.ssat = 2;
-      assert.isTrue(spec.isBidRequestValid(bidRequest));
-
-      delete bidRequest.params.ssat;
-      assert.isUndefined(bidRequest.params.ssat);
       assert.isTrue(spec.isBidRequestValid(bidRequest));
     });
 
@@ -385,8 +308,6 @@ describe('stroeerCore bid adapter', function () {
           'ref': topWin.document.referrer,
           'mpa': true,
           'ssl': false,
-          'ssat': 2,
-          'yl2': false,
           'bids': [{
             'sid': 'NDA=', 'bid': 'bid1', 'siz': [[300, 600], [160, 60]], 'viz': true
           }, {
@@ -413,71 +334,6 @@ describe('stroeerCore bid adapter', function () {
       });
 
       describe('optional fields', () => {
-        it('should use ssat value from config', () => {
-          const bidReq = buildBidderRequest();
-          bidReq.bids.length = 1;
-          bidReq.bids[0].params.ssat = 99;
-          const serverRequestInfo = spec.buildRequests(bidReq.bids, bidReq);
-          assert.equal(99, serverRequestInfo.data.ssat);
-        });
-
-        it('yl2 defaults to false', () => {
-          const bidReq = buildBidderRequest();
-          bidReq.bids.length = 1;
-          const serverRequestInfo = spec.buildRequests(bidReq.bids, bidReq);
-          assert.equal(false, serverRequestInfo.data.yl2);
-        });
-
-        it('should use yl2 value from config', () => {
-          const bidReq = buildBidderRequest();
-          bidReq.bids.length = 1;
-          bidReq.bids[0].params.yl2 = true;
-          const serverRequestInfo = spec.buildRequests(bidReq.bids, bidReq);
-          assert.equal(true, serverRequestInfo.data.yl2);
-        });
-
-        it('should use yl2 value from localStorage', () => {
-          localStorage.sdgYieldtest = '1';
-          const bidReq = buildBidderRequest();
-          bidReq.bids.length = 1;
-          bidReq.bids[0].params.yl2 = false;
-          const serverRequestInfo = spec.buildRequests(bidReq.bids, bidReq);
-          assert.equal(true, serverRequestInfo.data.yl2);
-        });
-
-        it('should use 2 as default value for ssat', () => {
-          const bidReq = buildBidderRequest();
-          bidReq.bids.length = 1;
-          delete bidReq.bids[0].params.ssat;
-          const serverRequestInfo = spec.buildRequests(bidReq.bids, bidReq);
-          assert.equal(2, serverRequestInfo.data.ssat);
-        });
-
-        it('should use first ssat value on a list of bids', () => {
-          const bidReq = buildBidderRequest();
-
-          delete bidReq.bids[0].params.ssat;
-
-          bidReq.bids[1].params.ssat = 1;
-
-          bidReq.bids.push({
-            bidId: 'bid3',
-            bidder: 'stroeerCore',
-            placementCode: 'div-1',
-            mediaTypes: {
-              banner: {
-                sizes: [[300, 600], [160, 60]],
-              }
-            },
-            params: {
-              sid: 'NDA=', ssat: 2
-            }
-          });
-          const serverRequestInfo = spec.buildRequests(bidReq.bids, bidReq);
-
-          assert.equal(1, serverRequestInfo.data.ssat);
-        });
-
         it('should skip viz field when unable to determine visibility of placement', () => {
           placementElements.length = 0;
           const bidReq = buildBidderRequest();
@@ -534,21 +390,6 @@ describe('stroeerCore bid adapter', function () {
           });
         });
 
-        it('should send contents of yieldlove_ab global object if it is available', () => {
-          win.yieldlove_ab = {
-            foo: 'bar',
-            xyz: 123
-          }
-
-          const bidReq = buildBidderRequest();
-          const serverRequestInfo = spec.buildRequests(bidReq.bids, bidReq);
-          const abTestingKeyValues = serverRequestInfo.data.ab;
-
-          assert.lengthOf(Object.keys(abTestingKeyValues), 2);
-          assert.propertyVal(abTestingKeyValues, 'foo', 'bar');
-          assert.propertyVal(abTestingKeyValues, 'xyz', 123);
-        });
-
         it('should be able to build without third party user id data', () => {
           const bidReq = buildBidderRequest();
           bidReq.bids.forEach(bid => delete bid.userId);
@@ -574,33 +415,7 @@ describe('stroeerCore bid adapter', function () {
       });
     });
 
-    it('should call endpoint when it exists', () => {
-      fakeServer.respondWith('');
-      spec.interpretResponse({body: buildBidderResponseWithTep()});
-      fakeServer.respond();
-
-      assert.equal(fakeServer.requests.length, 1);
-      const request = fakeServer.requests[0];
-
-      assert.equal(request.method, 'GET');
-      assert.equal(request.url, '//hb.adscale.de/sspReqId/5f465360-cb11-44ee-b0be-b47a4f583521/39000');
-    });
-
-    it('should not call endpoint when endpoint field not present', () => {
-      fakeServer.respondWith('');
-      spec.interpretResponse({body: buildBidderResponse()});
-      fakeServer.respond();
-
-      assert.equal(fakeServer.requests.length, 0);
-    });
-
-    it('should ignore legacy (prebid < 1.0) redirect', () => {
-      // Old workaround for CORS/Ajax/Redirect issues on a few browsers
-      const legacyRedirect = {redirect: 'http://somewhere.com/over'};
-      assert.throws(() => spec.interpretResponse({body: legacyRedirect}));
-    });
-
-    it('should intrepret a standard response', () => {
+    it('should interpret a standard response', () => {
       const bidderResponse = buildBidderResponse();
 
       const result = spec.interpretResponse({body: bidderResponse});
@@ -608,34 +423,10 @@ describe('stroeerCore bid adapter', function () {
       assertStandardFieldsOnBid(result[1], 'bid2', '<div>tag2</div>', 728, 90, 7.3);
     });
 
-    it('should interpret a first price response', () => {
-      const bidderResponse = buildBidderResponseSecondPriceAuction();
-
-      const result = spec.interpretResponse({body: bidderResponse});
-      assertStandardFieldsOnBid(result[0], 'bid1', '<div>tag1</div>', 300, 600, 4);
-      assertStandardFieldsOnBid(result[1], 'bid2', '<div>tag2</div>', 728, 90, 7.3);
+    it('should return empty array, when response contains no bids', () => {
+      const result = spec.interpretResponse({body: {bids: []}});
+      assert.deepStrictEqual(result, []);
     });
-
-    it('should extend bid with bidPriceOptimisation fields if provided', () => {
-      const bidderResponse = buildBidderResponseWithBidPriceOptimisation();
-
-      const result = spec.interpretResponse({body: bidderResponse});
-      assertStandardFieldsOnBid(result[0], 'bid1', '<div>tag1</div>', 300, 600, 4);
-      assert.propertyVal(result[0], 'cp', 4);
-      result[0].should.include.keys('rop');
-      assert.propertyVal(result[0], 'ropFactor', 1.2)
-    });
-
-    it('should default cpm, width and height fields to 0 and include bidPriceOptimisation fields if provided and no bids', () => {
-      const bidderResponse = buildBidderResponseWithBidPriceOptimisationButNoBids();
-
-      const result = spec.interpretResponse({body: bidderResponse});
-      assert.propertyVal(result[0], 'requestId', 'bid1');
-      assert.propertyVal(result[0], 'cp', 4);
-      result[0].should.include.keys('rop');
-      assert.propertyVal(result[0], 'ropFactor', 1.2)
-    });
-
   });
 
   describe('get user syncs entry point', () => {
@@ -662,7 +453,6 @@ describe('stroeerCore bid adapter', function () {
     });
 
     describe('when iframe option is enabled', () => {
-
       it('should perform user connect when there was a response', () => {
         const expectedUrl = 'https://js.adscale.de/pbsync.html';
         const userSyncResponse = spec.getUserSyncs({iframeEnabled: true}, ['']);
@@ -675,11 +465,9 @@ describe('stroeerCore bid adapter', function () {
 
         assert.deepStrictEqual(userSyncResponse, []);
       });
-
     });
 
     describe('when iframe option is disabled', () => {
-
       it('should not perform user connect even when there was a response', () => {
         const userSyncResponse = spec.getUserSyncs({iframeEnabled: false}, ['']);
 
@@ -691,8 +479,6 @@ describe('stroeerCore bid adapter', function () {
 
         assert.deepStrictEqual(userSyncResponse, []);
       });
-
     });
-
   });
 });
