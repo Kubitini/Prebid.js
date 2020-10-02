@@ -470,9 +470,9 @@ describe('stroeerCore bid adapter', function () {
 
         describe('and gdpr applies', () => {
 
-          it.only('should place gdpr query param to the user sync url with value of 1', () => {
+          it('should place gdpr query param to the user sync url with value of 1', () => {
             const expectedUrl = 'https://js.adscale.de/pbsync.html?gdpr=1&gdpr_consent=';
-            const userSyncResponse = spec.getUserSyncs({iframeEnabled: true}, [''], {gdprApplies: true});
+            const userSyncResponse = spec.getUserSyncs({iframeEnabled: true},[''], {gdprApplies: true});
 
             assert.deepStrictEqual(userSyncResponse, [{type: 'iframe', url: expectedUrl}]);
 
@@ -504,6 +504,23 @@ describe('stroeerCore bid adapter', function () {
 
         });
 
+        describe('and consent string is defined', ()=>{
+          it('should pass consent string to gdpr consent query param', () => {
+            const consentString = 'consent_string';
+            const expectedUrl = `https://js.adscale.de/pbsync.html?gdpr=1&gdpr_consent=${consentString}`;
+            const userSyncResponse = spec.getUserSyncs({iframeEnabled: true},[''], {gdprApplies: true, consentString});
+
+            assert.deepStrictEqual(userSyncResponse, [{type: 'iframe', url: expectedUrl}]);
+          });
+
+          it('should correctly escape invalid characters', () => {
+            const consentString = 'consent ?stri&ng';
+            const expectedUrl = `https://js.adscale.de/pbsync.html?gdpr=1&gdpr_consent=consent%20%3Fstri%26ng`;
+            const userSyncResponse = spec.getUserSyncs({iframeEnabled: true},[''], {gdprApplies: true, consentString});
+
+            assert.deepStrictEqual(userSyncResponse, [{type: 'iframe', url: expectedUrl}]);
+          });
+        });
       });
 
     });

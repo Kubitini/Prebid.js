@@ -67,6 +67,17 @@ function buildUrl({host: hostname = DEFAULT_HOST, port = DEFAULT_PORT, securePor
   return utils.buildUrl({protocol: 'https', hostname, port, pathname});
 }
 
+function getGdprParams(gdprConsent) {
+  if (gdprConsent) {
+    const consentString = encodeURIComponent(gdprConsent.consentString || '')
+    const isGdpr = gdprConsent.gdprApplies ? 1 : 0;
+
+    return `?gdpr=${isGdpr}&gdpr_consent=${consentString}`
+  } else {
+    return '';
+  }
+}
+
 export const spec = {
   code: BIDDER_CODE,
   supportedMediaTypes: [BANNER],
@@ -172,7 +183,7 @@ export const spec = {
     if (serverResponses.length > 0 && syncOptions.iframeEnabled) {
       return [{
         type: 'iframe',
-        url: USER_SYNC_IFRAME_URL
+        url: USER_SYNC_IFRAME_URL + getGdprParams(gdprConsent)
       }];
     }
 
