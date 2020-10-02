@@ -168,7 +168,7 @@ export const spec = {
     return bids;
   },
 
-  getUserSyncs: function (syncOptions, serverResponses) {
+  getUserSyncs: function (syncOptions, serverResponses, gdprConsent) {
     if (serverResponses.length > 0 && syncOptions.iframeEnabled) {
       return [{
         type: 'iframe',
