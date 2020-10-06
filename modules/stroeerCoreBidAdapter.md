@@ -12,21 +12,12 @@ Maintainer: help@cz.stroeer-labs.com
 ```javascript
 const adUnits = [{ 
     code: 'div-gpt-ad-1460505748561-0',
-    sizes: [[728, 90],[987, 123],[770, 250],[800, 250]], // TODO
+    sizes: [[300, 250]],
     bids: [{
         bidder: 'stroeerCore',
         params: {
-          sid: "83891"
+          sid: "06b782cc-091b-4f53-9cd2-0291679aa1ac"
         }    
-    }]
-},{
-    code: 'div-gpt-ad-1460505661639-0',
-    sizes: [[770, 250]],
-    bids: [{
-      bidder: 'stroeerCore',
-      params: {
-        sid: "85929"
-      }    
     }]
 }];
 ```
